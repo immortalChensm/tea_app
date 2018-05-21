@@ -69,6 +69,7 @@ body { background: #FFF none;}
                         {$store.store_zip}
                     </dd>
 		        </dl>
+		        <!--
 		        <dl>
 		          <dt>网&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;址：</dt>
 		          <dd>
@@ -79,6 +80,7 @@ body { background: #FFF none;}
                       </empty>
 		          </dd>
 		        </dl>
+		          -->
 		      </div>
 		    </div> 
 		    <div class="ncsc-order-details">
@@ -141,9 +143,15 @@ body { background: #FFF none;}
               <th colspan="10">
               	<span>订单总价：&yen;{$order.total_amount}</span>
               	<span>配送费用：&yen;{$order.shipping_price}</span>
+              	
+              	
               	<span>使用优惠券：&yen;{$order.coupon_price}</span>
+              	
+              	<!-- 
               	<span>使用积分：&yen;{$order.integral}</span>
               	<span>使用余额：&yen;{$order.user_money}</span>
+              	 -->
+              	
               	<span >应付金额：<font style="font-weight: 600;">&yen;{$order.order_amount}</font></span>
                 </th>
             </tr>

@@ -48,6 +48,8 @@ class Wxpay extends Base
      */
     public function  notify()
     {
+        //file_put_contents('notify.log', $GLOBALS['HTTP_RAW_POST_DATA']."\n", FILE_APPEND);
+        
         $xml = $GLOBALS['HTTP_RAW_POST_DATA'];
 		$xml = $xml ?: file_get_contents('php://input');
         $result = json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
@@ -62,7 +64,7 @@ class Wxpay extends Base
             } else {		
                 $order_amount = M('order')->where(['master_order_sn'=>"$order_sn"])->whereOr(['order_sn'=>"$order_sn"])->sum('order_amount');
             }
-            file_put_contents('./notify.log', $order_amount."\n", FILE_APPEND);
+            file_put_contents('notify.log', $order_amount."\n", FILE_APPEND);
             if ((string)($order_amount * 100) == (string)$wx_total_fee) {
                 
                 //支付的通知结果返回时对订单再次处理　
@@ -71,6 +73,7 @@ class Wxpay extends Base
                 //
                 update_pay_status($order_sn);
                 $return_result = 'SUCCESS';
+                //file_put_contents("微信支付成功", '');
             }
         }
 
@@ -143,6 +146,12 @@ class Wxpay extends Base
                 // 获取支付金额
                 $total = $order['order_amount'];
             } 
+            
+            //验证是否支付
+            if($order['pay_status']!=0){
+                $res = array('msg'=>'此订单不可再次支付','status'=>-1);
+                $this->ajaxReturn($res);
+            }
         }
         
         // 将元转成分
@@ -160,7 +169,8 @@ class Wxpay extends Base
         
         //在此从支付插件数据表plugin读取支付配置参数　并返回配置参数
         //注释时间：2018-3-03-28
-        $WxPayConfig = \WxPayConfig::getInstance($trade_type);
+        $notify_url = 'index.php/api/Wxpay/notify';
+        $WxPayConfig = \WxPayConfig::getInstance($trade_type,$notify_url);
         
         $payBody = getPayBody($order['order_id']);
         $unifiedOrder->SetBody($payBody);//商品或支付单简要描述
@@ -206,6 +216,15 @@ class Wxpay extends Base
 
     }
 
+    //获取支付状态
+    public function getwxpaystatus()
+    {
+        $order_sn = I("order_sn");
+        $order = \think\Db::name("order")->where(function($query){
+            $query->where("master_order_sn",$order_sn)->whereOr("order_sn",$order_sn);
+        })->find();
+        empty($order) && $this->ajaxReturn(['msg'=>'不存在此订单','status'=>-1]);
+        $this->ajaxReturn(['msg'=>'获取成功','status'=>$order]);  }
 
 }
 

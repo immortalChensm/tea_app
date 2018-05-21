@@ -89,7 +89,31 @@ class Order extends Base
             }
             $v['item_id'] = empty($item_id) ? 0 : $item_id;
         }
+        
+        /**************@wroteby jackcsm 2018 4 24***************/
+
+        //获取这个订单的商品
+        $order_info['new_goods_list'] = \think\Db::name("order_goods")->where("order_id",$order_info['order_id'])->select();
+        $orderGoodsIdArr = [];
+        foreach ($order_info['new_goods_list'] as $k=>$v){
+            $orderGoodsIdArr[$v['goods_id']] = $v['goods_id'];
+        }
+
+        $order_info['img'] = $this->goodsimg($orderGoodsIdArr);
+       
+        /*****************************/
+     
         $this->ajaxReturn(['status'=>1,'msg'=>'获取成功','result'=>$order_info]);
+    }
+    
+    public function goodsimg($orderGoodsIdArr)
+    {
+        $a = \think\Db::name("goods")->field("goods_id,original_img")->whereIn("goods_id",$orderGoodsIdArr)->select();
+        $b = [];
+        foreach ($a as $key=>$v){
+            $b[$v['goods_id']] = $v['original_img'];
+        }
+        return $b;
     }
     
     /*
@@ -187,7 +211,7 @@ class Order extends Base
     //传递id 订单id
     public function order_confirm()
     {
-    	$id = I('get.id/d', 0);
+    	$id = I('id/d', 0);
     	$data = confirm_order($id, $this->user_id);
     	if($this->request->param("isajax")){
     	    $this->ajaxReturn($data);
@@ -248,6 +272,11 @@ class Order extends Base
     	$goods_id = I('goods_id/d',0);
     	$spec_key = I('spec_key','');
     	
+    	//must verify 
+    	empty($rec_id)&&$this->ajaxReturn(['status' =>-1, 'msg' => "订单商品rec_id未传递"]);
+    	empty($order_id)&&$this->ajaxReturn(['status' =>-1, 'msg' => "订单id未传递"]);
+    	empty($goods_id)&&$this->ajaxReturn(['status' =>-1, 'msg' => "订单商品id未传递"]);
+    	$type = I("is_ajax","0");
     	//判断是否重复提交申请售后
     	if($order_id && $goods_id){
     	    $return_goods = M('return_goods')
@@ -265,7 +294,7 @@ class Order extends Base
     	}
     	   
     	
-    	if(IS_POST){
+    	if(IS_POST&&$type){
     		$model = new OrderLogic();
     		$res = $model->addReturnGoods($rec_id,$order);  //申请售后
     		$this->ajaxReturn($res);
@@ -290,13 +319,139 @@ class Order extends Base
     	    'order_id' => $order['order_id'],
     	    'order_sn' => $order['order_sn'],
     	    'store_name'=> $store['store_name'],
-    	    'store_address'=> $region[$store['province_id']].$region[$store['city_id']].$region[$store['district']].$store['store_address'],
-    	    'service_phone'=> $store['store_phone'], //客服电话
-            'return_method' => ['仅退款','退货退款','换货','维修']
+    	    'store_address'=>$region[$store['province_id']].$region[$store['city_id']].$region[$store['district']].$store['store_address'],
+    	    'service_phone'=>$store['store_phone'], //客服电话
+            'return_method' =>['仅退款','退货退款','换货','维修'],
+    	    'store'=>$store,
+    	    'goods_info'=>\think\Db::name("goods")->where("goods_id",$order_goods['goods_id'])->find(),
+    	    'order_state'=>\think\Db::name("order")->where("order_id",$order_goods['order_id'])->value("shipping_status")
     	)]);
-
-    }
+        }
+        
+        //批量性申请退款数据
+        /**
+         * 申请退货
+         */
+        public function getReturngoodslist()
+        {
+            /*$rec_id = I('rec_id/d',0);
+            $order_id = I('order_id/d',0);
+            $goods_id = I('goods_id/d',0);
+            $spec_key = I('spec_key','');
+             
+             */
+            
+            $spec_key = I('spec_key','');
+            $Recid = [];
+            $OrderId = [];
+            $GoodsId = [];
+            $orderInfo = \think\Db::name("order_goods")->where("order_id",$this->request->param("order_id"))->find();
+            foreach ($orderInfo as $k=>$v){
+                $Recid[$v['rec_id']] = $v['rec_id'];
+                $OrderId[$v['rec_id']] = $v['order_id'];
+                $GoodsId[$v['rec_id']] = $v['goods_id'];
+            }
+            
+            foreach ($Recid as $k=>$v){
+                
+                        $type = I("is_ajax","0");
+                        //判断是否重复提交申请售后
+                        if($OrderId[$k] && $GoodsId[$k]){
+                            $return_goods = M('return_goods')
+                            ->where(['order_id'=>$OrderId[$k],'goods_id'=>$GoodsId[$k],'spec_key'=>$spec_key])
+                            ->where('status','in','0,1')->find();
+                            !empty($return_goods) && $this->ajaxReturn(array('status'=>-1,'msg'=>'已经在申请退货中','result'=>''));
+                        }
+                    
+                        $return_goods = M('return_goods')->where(array('rec_id'=>$Recid[$k]))->find();
+                        $order_goods = M('order_goods')->where(array('rec_id'=>$Recid[$k]))->find();
+                        $order = M('order')->where(array('order_id'=>$order_goods['order_id'],'user_id'=>$this->user_id))->find();
+                    
+                        if(!$order){
+                            $this->ajaxReturn(['status' => -1, 'msg' => "参数[$Recid[$k]]无效", 'result' => '']);
+                        }
+                    
+                       
+                        $confirm_time_config = tpCache('shopping.auto_service_date');
+                        $confirm_time = $confirm_time_config * 24 * 60 * 60;
+                        if ((time() - $order['confirm_time']) > $confirm_time && !empty($order['confirm_time'])) {
+                            $this->ajaxReturn(['status' => -1, 'msg' => '已经超过' . $confirm_time_config . "天内退货时间" , 'result' => '']);
+                        }
+                        
+                        //店铺信息
+                        $store = M('store')->where(array('store_id'=>$order['store_id']))->find();
+                        $map['id'] = array('in',array($store['province_id'],$store['city_id'],$store['district']));
+                        $region = M('region')->where($map)->cache(7200)->getField('id,name');
+                    
+                        $rec_order = [
+                            'goods_id'=>$order_goods['goods_id'],
+                            'goods_name'=>$order_goods['goods_name'],
+                            'goods_price' => $order_goods['goods_price'],
+                            'goods_num' => $order_goods['goods_num'],
+                            'spec_key' => $order_goods['spec_key'],
+                            'spec_key_name' => $order_goods['spec_key_name'],
+                            'order_id' => $order['order_id'],
+                            'order_sn' => $order['order_sn'],
+                            'store_name'=> $store['store_name'],
+                            'store_address'=>$region[$store['province_id']].$region[$store['city_id']].$region[$store['district']].$store['store_address'],
+                            'service_phone'=>$store['store_phone'], //客服电话
+                            'return_method' =>['仅退款','退货退款'],
+                            'store'=>$store,
+                            'goods_info'=>\think\Db::name("goods")->where("goods_id",$order_goods['goods_id'])->find(),
+                            'order_state'=>\think\Db::name("order")->where("order_id",$order_goods['order_id'])->value("shipping_status")
+                        ];
+                        
+                      $ReclistOrder['list'][] = $rec_order;
+            }
+            
+            $this->ajaxReturn(['status' => 1, 'msg' => "获取成功", 'result' =>$ReclistOrder]);
+        }
+        
+    //批量退款额外添加
+    //@wroteby jackcsm
     
+    public function return_listgoods()
+    {
+        $order = \think\Db::name("order_goods")->where("order_id",$this->request->param("order_id"))->find();
+        $Recid = [];
+        $goodsId = [];
+        $OrderId = [];
+        $goodsNum =[];
+        
+        foreach($order as $k=>$v){
+            $Recid[$v['rec_id']] = $v['rec_id'];
+            $goodsId[$v['rec_id']] = $v['goods_id'];
+            $OrderId[$v['rec_id']] = $v['order_id'];
+            $goodsNum[$v['rec_id']] = $v['goods_num'];
+        }
+        //退款类型
+        $type   = $this->request->param("type");
+        $reason = $this->request->param("reason");
+        $describe = $this->request->param("describe");
+        $imgs     = $this->request->param("imgs");
+        //$order_sn = \think\Db::name("order")->where("order_id",$this->request->param("order_id"))->value("order_sn");
+        $model = new OrderLogic();
+        //退款的订单数据
+        $order_info = M('order')->where(array('order_id'=>$this->request->param("order_id"),'user_id'=>$this->user_id))->find();
+        
+        foreach ($Recid as $k=>$v){
+            
+            $res = $model->addReturnGoodspatch($v,$order_info,[
+                "rec_id"=>$v,
+                "order_id"=>$OrderId[$k],
+                "goods_id"=>$goodsId[$k],
+                "type"=>$type,
+                "reason"=>$reason,
+                "describe"=>$describe,
+                "imgs"=>$imgs,
+                "order_sn"=>$order_info['order_sn'],
+                "goods_num"=>$goodsNum[$k]
+            ]);  
+        }
+        
+        $this->ajaxReturn(['status' => 1, 'msg' => "批量退款成功"]);
+    }
+     
     /**
      * 退换货列表
      */
@@ -316,7 +471,7 @@ class Order extends Base
                 $data['return_list'][$key]['goods_name'] = $data['goodsList'][$val['goods_id']];
                 $data['return_list'][$key]['status_name'] = $state[$val['status']];
             }
-            $this->ajaxReturn(['status'=>1, 'msg'=>'获取成功', 'result'=>$data['return_list']]);
+            $this->ajaxReturn(['status'=>1, 'msg'=>'获取成功', 'result'=>$this->getreturn_goodsinfo($data)]);
         }
         
         $this->assign('goodsList', $data['goodsList']);
@@ -332,6 +487,43 @@ class Order extends Base
     	return $this->fetch();
     }
     
+    //获取退款订单的商铺信息
+    private function getreturn_goodsinfo($return_list)
+    {
+        $storeId = [];
+        $goodsId = [];
+        $orderId = [];
+        foreach ($return_list['return_list'] as $k=>$v){
+            $storeId[] = $v['store_id'];
+            $goodsId[] = $v['goods_id'];
+            $orderId[] = $v['order_id'];
+        }
+        
+        $storeInfo = \think\Db::name("store")->whereIn("store_id",$storeId)->select();
+        $goodsinfo = \think\Db::name("goods")->whereIn("goods_id",$goodsId)->select();
+        $orderInfo = \think\Db::name("order")->whereIn("order_id",$orderId)->select();
+        
+        $store =[];
+        $goods = [];
+        $order = [];
+        foreach ($storeInfo as $k=>$v){
+            $store[$v['store_id']] = $v;
+        }
+        foreach ($goodsinfo as $k=>$v){
+            $goods[$v['goods_id']] = $v;
+        }
+        foreach ($orderInfo as $k=>$v){
+            $order[$v['order_id']] = $v;
+        }
+        foreach ($return_list['return_list'] as $k=>$v){
+            $return_list['return_list'][$k]['storeinfo'] = $store[$v['store_id']];
+            $return_list['return_list'][$k]['goodsinfo'] = $goods[$v['goods_id']];
+            $return_list['return_list'][$k]['orderinfo'] = $order[$v['order_id']];
+        }
+        unset($return_list['goodsList']);
+        unset($return_list['page']);
+        return $return_list['return_list'];
+    }
     /**
      *  退货详情
      */
@@ -377,6 +569,7 @@ class Order extends Base
                 'result' => [
                     'return_goods' => $return_goods,
                     'goods' => $goods,
+                    'shoplogo'=>$store['store_logo'],
                     'return_method' => ['仅退款','退货退款','换货','维修']
                 ]
             ]);

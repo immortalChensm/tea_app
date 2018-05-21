@@ -8,17 +8,20 @@
 <div class="tabmenu">
   <ul id="tab" class="tab pngFix">
   	<li class="<if condition='$Request.param.shipping_status eq 0'>active</if>" data-val="0"><a  href="#">待发货</a></li>
-  	<li class="normal  <if condition='$Request.param.shipping_status eq 2'>active</if>" data-val="2"><a  href="#">部分发货</a></li>
+  	<!-- 
+  	<li class="normal  <if condition='$Request.param.shipping_status eq 2'>active</if>" data-val="2"><a  href="#">部分发货</a></li> -->
   	<li class="normal <if condition='$Request.param.shipping_status eq 1'>active</if>" data-val="1"><a  href="#">已发货</a></li>
-  	<li class="normal" ><a href="{:U('Service/return_list')}">已退换货</a>
+  	<!--
+  	<li class="normal" ><a href="{:U('Service/return_list')}">已退换货</a>  -->
   </ul>
   </div>
   <div class="alert alert-block mt10">
+  <!-- 
 	  <ul class="mt5">
 	    <li>1、发货列表包含"待发货"、"部分发货"、"已发货"三个状态</li>
 	    <li>2、待发货订单可发货, 部分发货订单可继续发货, 已发货订单可打印发货单</li>
 	    <li>3、已经发货订单, 如果买家没有确认收货, 系统会根据设置结算周期自动结算订单</li>
-	  </ul>
+	  </ul> -->
 </div>
 <form method="post" action="{:U('Order/ajaxdelivery')}" id="search-form2" onsubmit="return false">
   <input type="hidden" name="shipping_status" id="shipping_status" value="{$Request.param.shipping_status}">

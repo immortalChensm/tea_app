@@ -9,6 +9,11 @@ return array(
 			//array('name' => '商品规格', 'act' => 'specList', 'op'=>'Goods'),
 			//array('name' => '品牌管理', 'act'=>'brandList', 'op'=>'Goods'),
 	)),
+    'crowdfunding' =>array('name' => '众筹', 'icon'=>'ico-goods', 'child' => array(
+        array('name' => '众筹列表', 'act'=>'crowdlist', 'op'=>'Crowdfunding'),
+        array('name' => '发起众筹', 'act'=>'addEditGoods', 'op'=>'Crowdfunding'),
+
+    )),
 	'order'=>array('name' => '订单物流', 'icon'=>'ico-order', 'child' => array(
 			array('name' => '订单列表', 'act'=>'index', 'op'=>'Order'),
 			//array('name' => '虚拟订单', 'act'=>'virtual_list', 'op'=>'Order'),
@@ -42,9 +47,9 @@ return array(
 	)),
 	
 	'consult' => array('name' => '售后服务', 'icon'=>'ico-store', 'child' => array(
-			array('name' => '咨询管理', 'act'=>'ask_list', 'op'=>'Service'),
+			//array('name' => '咨询管理', 'act'=>'ask_list', 'op'=>'Service'),
 			array('name' => '退货换货', 'act'=>'refund_list', 'op'=>'Service'),
-			array('name' => '投诉管理', 'act'=>'complain_list', 'op'=>'Service'),
+			//array('name' => '投诉管理', 'act'=>'complain_list', 'op'=>'Service'),
 	)),
 	'statistics' => array('name' => '统计结算', 'icon'=>'ico-statistics', 'child' => array(
 			array('name' => '提现申请', 'act'=>'withdrawals', 'op'=>'Finance'),
@@ -52,12 +57,12 @@ return array(
 			array('name' => '店铺结算记录', 'act'=>'order_statis', 'op'=>'Finance'),
 			array('name' => '未结算订单', 'act'=>'order_no_statis', 'op'=>'Finance'),
 			array('name' => '店铺概况', 'act'=>'index', 'op'=>'Report'),
-			array('name' => '运营报告', 'act'=>'finance', 'op'=>'Report'),
+			//array('name' => '运营报告', 'act'=>'finance', 'op'=>'Report'),
 			array('name' => '销售排行', 'act'=>'saleTop', 'op'=>'Report'),
 			//array('name' => '流量统计', 'act'=>'visit', 'op'=>'Report'),
 	)),
-	'message' => array('name' => '客服消息', 'icon'=>'ico-message', 'child' => array(
-			array('name' => '客服设置', 'act'=>'store_service', 'op'=>'Index'),
+	'message' => array('name' => '消息', 'icon'=>'ico-message', 'child' => array(
+			//array('name' => '客服设置', 'act'=>'store_service', 'op'=>'Index'),
 			array('name' => '系统消息', 'act'=>'store_msg', 'op'=>'Index'),
 			//array('name' => '聊天记录查询', 'act'=>'store_im', 'op'=>'store'),
 	)),

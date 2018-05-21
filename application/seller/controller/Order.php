@@ -730,7 +730,7 @@ class Order extends Base
         );
         $shipping['config_value'] = str_replace($template_var, $content_var, $shipping['config_value']);
         $this->assign('shipping', $shipping);
-        return $this->fetch("Plugin/print_express");
+        return $this->fetch("plugin/print_express");
     }
 
     /**
@@ -740,6 +740,7 @@ class Order extends Base
     {
         $orderLogic = new OrderLogic();
         $data = I('post.');
+        //print_r($data);exit();
         $res = $orderLogic->deliveryHandle($data, STORE_ID);
         if ($res) {
             $this->ajaxReturn(['status'=>1,'msg'=>'操作成功', 'url'=>U('Seller/Order/index')]);

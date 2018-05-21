@@ -26,8 +26,8 @@ class AdminLogic extends Model{
             if ($old_password == $new_password) {
                 return ['status' =>-1,'msg'=>"两次密码一致"];
             } else {
-                if (M('users')->where(array('user_id' => $data['user_id'], 'password' => encrypt($old_password)))->count() > 0) {
-                    $r = M('users')->where(array('user_id' => $data['user_id']))->save(array('password' => encrypt($new_password)));
+                if (M('users')->where(array('user_id' => $data['user_id'], 'password' => encrypts($old_password)))->count() > 0) {
+                    $r = M('users')->where(array('user_id' => $data['user_id']))->save(array('password' => encrypts($new_password)));
                     if ($r !== false) {
                         M('seller')->where(['seller_id'=>$data['seller_id']])->save(array('enabled' => $data['enabled'],'group_id'=>$data['group_id']));
                         return ['status' =>1, 'msg'=>"密码修改成功", 'url'=>U('Admin/index')];
@@ -62,13 +62,13 @@ class AdminLogic extends Model{
         $userinfo = M('users')->field('password,user_id')->where([$uname=>$data['user_name']])->find();
         if (empty($userinfo)) {
             return ['status' =>-1,'msg'=>"请先注册前台会员",];
-        } elseif ($userinfo['password'] != encrypt($data['password'])) {
+        } elseif ($userinfo['password'] != encrypts($data['password'])) {
             return ['status' =>-1,'msg'=>"登陆密码错误",];
         } else {
             if (M('seller')->where("user_id", $userinfo['user_id'])->count()) {
                 return ['status' =>-1,'msg'=>"该用户已经添加过店铺管理员",];
             }
-            $data['password'] = encrypt($data['password']);
+            $data['password'] = encrypts($data['password']);
             $data['user_id'] = $userinfo['user_id'];
             $data['store_id'] = STORE_ID;
             $data['add_time'] = time();
@@ -100,7 +100,7 @@ class AdminLogic extends Model{
                     return ['status' => 0, 'msg' => '店铺已到期自动关闭，请联系平台客服'];
                 }
 
-                $user = Db::name('users')->where(['user_id' => $seller['user_id'],'password' => encrypt($password)])->find();
+                $user = Db::name('users')->where(['user_id' => $seller['user_id'],'password' => encrypts($password)])->find();
                 if ($user) {
                     if ($seller['is_admin'] == 0 && $seller['enabled'] == 1) {
                         return ['status' => 0, 'msg' => '该账户还没启用激活'];
